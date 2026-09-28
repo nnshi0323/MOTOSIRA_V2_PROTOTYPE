@@ -1,0 +1,584 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MOTOSIRA</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=JetBrains+Mono:wght@400;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.6.1/socket.io.min.js"></script>
+<style>
+:root{
+  --bg:#14120F;--bg2:#0F0D0B;--surface:#1F1B15;--surface2:#241F18;--border:#332C1F;--border-lt:#4A4030;
+  --amber:#FFB020;--amber-dim:#8C6A20;--green:#4CE66B;--red:#FF3B30;--rust:#E8752C;
+  --text:#F3EEE2;--muted:#8C8372;--muted2:#5A5346;
+  --f-display:'Oswald',sans-serif;--f-mono:'JetBrains Mono',monospace;--f-body:'Inter',sans-serif;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:var(--f-body);background:var(--bg);color:var(--text);min-height:100vh;background-image:radial-gradient(circle at 15% 0%, #1a1712 0%, var(--bg) 55%);}
+a{color:inherit;text-decoration:none;}
+.topbar{display:flex;justify-content:space-between;align-items:center;padding:clamp(10px,2vw,16px) clamp(12px,2vw,20px);border-bottom:2px solid var(--border);background:var(--bg2);}
+.logo{font-family:var(--f-display);font-size:clamp(19px,3vw,27px);font-weight:700;color:var(--amber);letter-spacing:4px;text-transform:uppercase;}
+.logo-sub{font-family:var(--f-mono);font-size:clamp(8px,1.1vw,10px);color:var(--muted2);letter-spacing:1px;margin-top:4px;text-transform:uppercase;}
+.topright{text-align:right;}
+.live{display:flex;align-items:center;gap:6px;font-family:var(--f-mono);font-size:10px;color:var(--muted);justify-content:flex-end;letter-spacing:1px;text-transform:uppercase;}
+.dot{width:7px;height:7px;border-radius:50%;background:var(--green);box-shadow:0 0 6px var(--green);animation:pulse 1.2s infinite;}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.15}}
+.clock{font-family:var(--f-mono);font-size:12px;color:var(--amber-dim);margin-top:4px;}
+.logout{display:block;margin-top:6px;font-family:var(--f-mono);font-size:9px;color:var(--muted2);letter-spacing:1px;text-align:right;text-transform:uppercase;transition:color .15s;}
+.logout:hover{color:var(--red);}
+.shell{display:flex;min-height:calc(100vh - 68px);}
+.sidebar{width:206px;flex-shrink:0;background:var(--bg2);border-right:2px solid var(--border);padding:clamp(10px,2vw,18px) 12px;}
+.nav-lbl{font-family:var(--f-mono);font-size:9px;color:var(--muted2);text-transform:uppercase;letter-spacing:2px;padding:0 8px 12px;border-bottom:1px solid var(--border);margin-bottom:10px;}
+.nav-btn{display:flex;align-items:center;gap:10px;width:100%;padding:11px 12px;margin-bottom:4px;border-radius:3px;border:1px solid transparent;border-left:2px solid transparent;background:transparent;color:var(--muted);font-family:var(--f-display);font-size:12px;text-transform:uppercase;letter-spacing:1px;text-align:left;cursor:pointer;transition:all .15s;}
+.nav-btn:hover{background:var(--surface);color:var(--text);}
+.nav-btn.active{background:var(--surface);border-left-color:var(--amber);color:var(--amber);}
+.nav-ic{font-size:13px;width:16px;text-align:center;}
+.main{flex:1;min-width:0;padding:clamp(10px,2vw,20px);}
+.view{display:none;}
+.view.active{display:block;}
+.stepper{display:flex;flex-wrap:wrap;align-items:center;background:var(--surface);border:1px solid var(--border);border-radius:3px;padding:clamp(10px,1.6vw,14px) clamp(12px,2vw,18px);margin-bottom:clamp(8px,1.5vw,14px);}
+.step{display:flex;align-items:center;gap:8px;font-family:var(--f-display);font-size:clamp(11px,1.4vw,13px);color:var(--muted2);font-weight:600;letter-spacing:1.5px;text-transform:uppercase;}
+.step .n{width:22px;height:22px;border-radius:50%;border:1px solid var(--border-lt);display:flex;align-items:center;justify-content:center;font-family:var(--f-mono);font-size:11px;color:var(--muted);}
+.step.done .n{background:var(--green);border-color:var(--green);color:#0a1a0a;}
+.step.done{color:var(--green);}
+.step.current .n{background:var(--amber);border-color:var(--amber);color:#1a1200;}
+.step.current{color:var(--amber);}
+.step-arrow{margin:0 clamp(6px,1.5vw,14px);color:var(--muted2);}
+.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:clamp(8px,1.5vw,14px);margin-bottom:clamp(8px,1.5vw,14px);}
+.grid2{display:grid;grid-template-columns:3fr 2fr;gap:clamp(8px,1.5vw,14px);margin-bottom:clamp(8px,1.5vw,14px);}
+@media(max-width:800px){.shell{flex-direction:column;}.sidebar{width:100%;display:flex;overflow-x:auto;gap:6px;border-right:none;border-bottom:2px solid var(--border);}
+  .nav-lbl{display:none;}.nav-btn{width:auto;white-space:nowrap;margin-bottom:0;}}
+@media(max-width:650px){.grid3{grid-template-columns:1fr 1fr;}.grid2{grid-template-columns:1fr;}}
+@media(max-width:400px){.grid3{grid-template-columns:1fr;}}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:3px;padding:clamp(12px,2vw,18px);position:relative;}
+.card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:repeating-linear-gradient(90deg,var(--border-lt) 0 6px,transparent 6px 12px);}
+.lbl{font-family:var(--f-mono);font-size:clamp(8px,1vw,10px);color:var(--muted2);text-transform:uppercase;letter-spacing:2px;margin-bottom:10px;}
+.big{font-family:var(--f-display);font-size:clamp(22px,4vw,34px);font-weight:700;text-transform:uppercase;letter-spacing:2px;}
+.conf{font-family:var(--f-mono);font-size:clamp(28px,5vw,46px);font-weight:700;color:var(--amber);}
+.sev-num{font-family:var(--f-mono);font-size:clamp(18px,3vw,24px);font-weight:700;}
+.gauge{position:relative;height:14px;background:var(--bg2);border-radius:2px;margin-top:12px;overflow:hidden;border:1px solid var(--border);}
+.gauge-ticks{position:absolute;inset:0;display:flex;}
+.gauge-ticks span{flex:1;border-right:1px solid var(--bg);}
+.gauge-ticks span:last-child{border-right:none;}
+.gauge-fill{height:100%;width:0%;transition:width .6s,background .6s;}
+.gauge-redline{position:absolute;right:0;top:0;bottom:0;width:25%;background:repeating-linear-gradient(135deg,rgba(255,59,48,.12) 0 4px,transparent 4px 8px);border-left:1px dashed var(--red);}
+.sev-txt{font-family:var(--f-mono);font-size:10px;color:var(--muted2);margin-top:6px;text-transform:uppercase;letter-spacing:.5px;}
+.ts{font-family:var(--f-mono);font-size:10px;color:var(--muted2);margin-top:6px;}
+.action-txt{font-size:clamp(12px,1.8vw,15px);color:#D8D2C4;line-height:1.6;}
+.wave{display:flex;align-items:center;gap:2px;height:clamp(32px,5vw,46px);margin-top:12px;overflow:hidden;}
+.wb{width:4px;border-radius:1px;background:var(--amber);opacity:0.55;transition:height .25s;flex-shrink:0;}
+.stats-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:4px;}
+.sn{font-family:var(--f-mono);font-size:clamp(20px,3vw,28px);font-weight:700;}
+.ss{font-family:var(--f-mono);font-size:10px;color:var(--muted2);margin-top:2px;text-transform:uppercase;letter-spacing:1px;}
+.btn-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:clamp(8px,1.5vw,14px);}
+.btn{padding:10px 18px;border-radius:2px;border:1px solid var(--border-lt);background:var(--surface);color:var(--muted);font-family:var(--f-display);font-size:12px;cursor:pointer;letter-spacing:1.5px;text-transform:uppercase;transition:all .15s;font-weight:600;}
+.btn:hover{background:var(--surface2);color:var(--text);border-color:var(--amber-dim);}
+.btn:disabled{opacity:.3;cursor:not-allowed;}
+.btn.scan{border-color:var(--green);color:var(--green);background:#0D1F10;}
+.btn.danger{border-color:var(--red);color:var(--red);background:#220806;}
+.btn.export{border-color:var(--amber-dim);color:var(--amber);background:#221803;}
+.btn.primary{border-color:var(--amber);color:var(--amber);background:#2A1E05;}
+.filter-row{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;}
+.fb{padding:5px 12px;border-radius:20px;border:1px solid var(--border-lt);background:transparent;color:var(--muted);font-family:var(--f-mono);font-size:10px;cursor:pointer;transition:all .15s;text-transform:uppercase;letter-spacing:1px;}
+.fb:hover,.fb.active{background:var(--surface2);color:var(--text);border-color:var(--muted);}
+.fb.fg.active{border-color:var(--green);color:var(--green);}
+.fb.fr.active{border-color:var(--red);color:var(--red);}
+.fb.fo.active{border-color:var(--rust);color:var(--rust);}
+.fb.fy.active{border-color:var(--amber);color:var(--amber);}
+.hcard{background:var(--surface);border:1px solid var(--border);border-radius:3px;padding:clamp(12px,2vw,18px);overflow-x:auto;}
+table{width:100%;border-collapse:collapse;font-size:clamp(10px,1.2vw,13px);min-width:420px;}
+th{text-align:left;color:var(--muted2);padding:7px 10px;border-bottom:1px solid var(--border);font-family:var(--f-mono);font-size:9px;text-transform:uppercase;letter-spacing:1.5px;}
+td{padding:9px 10px;border-bottom:1px solid var(--bg2);color:var(--muted);font-family:var(--f-mono);font-size:12px;}
+.rlink{color:var(--amber);cursor:pointer;text-decoration:underline;}
+.badge{display:inline-block;padding:2px 9px;border-radius:20px;font-family:var(--f-mono);font-size:10px;font-weight:700;text-transform:uppercase;}
+.bg2{background:#0D2410;color:var(--green);}
+.br2{background:#2A0906;color:var(--red);}
+.bo2{background:#271507;color:var(--rust);}
+.by2{background:#2A1F05;color:var(--amber);}
+.toast{position:fixed;top:16px;right:16px;padding:12px 18px;border-radius:3px;font-family:var(--f-mono);font-size:12px;font-weight:600;opacity:0;pointer-events:none;transition:opacity .3s;z-index:999;border:1px solid;letter-spacing:.5px;}
+.toast.show{opacity:1;}
+.toast.warn{background:#221207;border-color:var(--rust);color:var(--rust);}
+.toast.crit{background:#220806;border-color:var(--red);color:var(--red);}
+.toast.ok{background:#0D1F10;border-color:var(--green);color:var(--green);}
+.cg{color:var(--green);}.cr{color:var(--red);}.co{color:var(--rust);}.cy2{color:var(--amber);}.cx{color:var(--muted2);}
+.pill{display:inline-block;padding:3px 10px;border-radius:20px;font-family:var(--f-mono);font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;border:1px solid var(--border-lt);color:var(--muted);}
+.pill.good{border-color:var(--green);color:var(--green);}
+.pill.warn{border-color:var(--rust);color:var(--rust);}
+.report-row{display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid var(--bg2);font-size:13px;}
+.report-row span:first-child{color:var(--muted2);text-transform:uppercase;letter-spacing:1px;font-family:var(--f-mono);font-size:10px;}
+.report-row span:last-child{font-family:var(--f-mono);color:var(--text);}
+.help-block{margin-bottom:18px;}
+.help-block h3{font-family:var(--f-display);font-size:14px;color:var(--amber);margin-bottom:6px;letter-spacing:1px;text-transform:uppercase;}
+.help-block p{font-size:13px;color:#B5AE9E;line-height:1.6;}
+.select-wrap{margin-bottom:0;}
+select.mselect{width:100%;background:var(--bg2);border:1px solid var(--border-lt);border-radius:2px;padding:10px 12px;color:var(--text);font-family:var(--f-mono);font-size:12px;letter-spacing:.5px;outline:none;}
+select.mselect:focus{border-color:var(--amber);}
+@media print{
+  .sidebar,.topbar,.btn-row,.stepper{display:none!important;}
+  body{background:#fff;color:#000;}
+  .card{border:1px solid #ccc;background:#fff;}
+}
+</style>
+</head>
+<body>
+<div class="toast" id="toast"></div>
+
+<div class="topbar">
+  <div>
+    <div class="logo">Motosira</div>
+    <div class="logo-sub">Acoustic Engine Diagnostic Instrument</div>
+  </div>
+  <div class="topright">
+    <div class="live"><div class="dot"></div>Live</div>
+    <div id="modelStatus" class="pill" style="margin-top:6px;">Model: checking...</div>
+    <div class="clock" id="clock">--:--:--</div>
+    <a href="/logout" class="logout">Logout</a>
+  </div>
+</div>
+
+<div class="shell">
+  <nav class="sidebar">
+    <div class="nav-lbl">Navigation</div>
+    <button class="nav-btn active" data-view="dashboard-view"><span class="nav-ic">&#9638;</span>Dashboard</button>
+    <button class="nav-btn" data-view="diagnosis-view"><span class="nav-ic">&#9679;</span>New Diagnosis</button>
+    <button class="nav-btn" data-view="report-view"><span class="nav-ic">&#9636;</span>Report</button>
+    <button class="nav-btn" data-view="history-view"><span class="nav-ic">&#8801;</span>History</button>
+    <button class="nav-btn" data-view="help-view"><span class="nav-ic">?</span>Help</button>
+  </nav>
+
+  <main class="main">
+
+    <section id="dashboard-view" class="view active">
+      <div class="grid3">
+        <div class="card">
+          <div class="lbl">Engine Status</div>
+          <div class="big cx" id="status">WAITING</div>
+          <div class="ts" id="timestamp">&mdash;</div>
+          <div class="ts" id="latency">Latency: &mdash;</div>
+        </div>
+        <div class="card">
+          <div class="lbl">Confidence</div>
+          <div class="conf" id="confidence">&mdash;</div>
+        </div>
+        <div class="card">
+          <div class="lbl">Severity</div>
+          <div class="sev-num cx" id="severity">&mdash; / 3</div>
+          <div class="gauge"><div class="gauge-ticks"><span></span><span></span><span></span><span></span></div><div class="gauge-fill" id="sevFill"></div><div class="gauge-redline"></div></div>
+          <div class="sev-txt" id="sevTxt">Waiting for data</div>
+        </div>
+      </div>
+
+      <div class="grid2">
+        <div class="card">
+          <div class="lbl">Recommended Action</div>
+          <div class="action-txt" id="action">Waiting for engine audio data...</div>
+          <div class="lbl" style="margin-top:14px;">Audio Waveform</div>
+          <div class="wave" id="wave"></div>
+        </div>
+        <div class="card">
+          <div class="lbl">Session Stats (All Time)</div>
+          <div class="stats-grid">
+            <div><div class="sn" id="tot">0</div><div class="ss">Total</div></div>
+            <div><div class="sn cg" id="nor">0</div><div class="ss">Normal</div></div>
+            <div><div class="sn co" id="mis">0</div><div class="ss">Misfire</div></div>
+            <div><div class="sn cr" id="kno">0</div><div class="ss">Knocking</div></div>
+            <div><div class="sn cy2" id="val">0</div><div class="ss">Valve Tick</div></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="btn-row">
+        <button class="btn primary" onclick="go('diagnosis-view')">New Diagnosis</button>
+        <button class="btn export" onclick="exportCSV()">Export CSV</button>
+        <button class="btn" onclick="go('history-view')">View History</button>
+      </div>
+    </section>
+
+    <section id="diagnosis-view" class="view">
+      <div class="stepper" id="stepper">
+        <div class="step current" data-step="1"><div class="n">1</div>Capture</div>
+        <div class="step-arrow">&rarr;</div>
+        <div class="step" data-step="2"><div class="n">2</div>Analyze</div>
+        <div class="step-arrow">&rarr;</div>
+        <div class="step" data-step="3"><div class="n">3</div>Result</div>
+        <div class="step-arrow">&rarr;</div>
+        <div class="step" data-step="4"><div class="n">4</div>Report</div>
+      </div>
+
+      <div class="card" style="margin-bottom:clamp(8px,1.5vw,14px);">
+        <div class="lbl">Motorcycle Model</div>
+        <div class="select-wrap">
+          <select class="mselect" id="modelSelect" onchange="setModel(this.value)">
+            <option value="">Loading models...</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="grid2">
+        <div class="card">
+          <div class="lbl">Audio Capture</div>
+          <div style="font-size:13px;color:#ccc;margin-bottom:4px;">Status: <b id="capStatus" class="cx">READY</b></div>
+          <div style="font-size:13px;color:#ccc;margin-bottom:12px;">Input quality: <span class="pill" id="inputQuality">&mdash;</span></div>
+          <div class="btn-row" style="margin-bottom:0;">
+            <button class="btn scan" id="startBtn" onclick="startCapture()">Start</button>
+            <button class="btn danger" id="stopBtn" onclick="stopCapture()" disabled>Stop</button>
+          </div>
+        </div>
+        <div class="card">
+          <div class="lbl">Live Engine Data</div>
+          <div style="font-size:13px;color:#ccc;margin-bottom:6px;">RPM: <b id="rpmVal" class="cx">&mdash; (sensor not connected)</b></div>
+          <div style="font-size:13px;color:#ccc;margin-bottom:6px;">Signal quality: <span class="pill" id="signalQuality">&mdash;</span></div>
+          <div style="font-size:13px;color:#ccc;">Analysis status: <b id="analysisStatus" class="cx">Idle</b></div>
+        </div>
+      </div>
+
+      <div class="card" style="margin-bottom:clamp(8px,1.5vw,14px);">
+        <div class="lbl">Diagnosis Result &mdash; Read This First</div>
+        <div style="font-family:var(--f-display);font-size:clamp(18px,3vw,26px);font-weight:700;margin:10px 0;text-transform:uppercase;letter-spacing:1px;" id="dResult">Detected problem: <span class="cx">&mdash;</span></div>
+        <div style="font-size:13px;color:#ccc;margin-bottom:12px;">Confidence: <b class="cx" id="dConf">&mdash; %</b> &nbsp;&nbsp; Severity: <b class="cx" id="dSev">Level &mdash;</b> &nbsp;&nbsp; Latency: <b class="cx" id="dLatency">&mdash;</b></div>
+        <div class="lbl" style="margin-top:4px;">Suggested Troubleshooting Steps</div>
+        <ol id="dSteps" style="margin:6px 0 0 18px;padding:0;font-size:13px;color:#D8D2C4;line-height:1.9;">
+          <li class="cx" style="list-style:none;margin-left:-18px;">Run a diagnosis to see steps here.</li>
+        </ol>
+      </div>
+
+      <div class="btn-row">
+        <button class="btn primary" onclick="go('report-view')">View Diagnosis Report</button>
+        <button class="btn export" onclick="saveResult()">Save</button>
+        <button class="btn" onclick="newScan()">New Scan</button>
+      </div>
+
+      <div class="card">
+        <div class="lbl">Diagnosis Report Preview</div>
+        <div style="font-family:var(--f-mono);font-size:12px;color:#888;line-height:1.9;">
+          ID: <span id="pvId" class="cx">&mdash;</span> &nbsp;
+          Date/Time: <span id="pvTime" class="cx">&mdash;</span> &nbsp;
+          Model: <span id="pvModel" class="cx">&mdash;</span> &nbsp;
+          Condition: <span id="pvCond" class="cx">&mdash;</span> &nbsp;
+          Suggested repair: <span id="pvRepair" class="cx">&mdash;</span>
+        </div>
+      </div>
+    </section>
+
+    <section id="report-view" class="view">
+      <div class="card" style="max-width:560px;">
+        <div class="lbl">Diagnosis Report</div>
+        <div class="report-row"><span>Report ID</span><span id="repId">&mdash;</span></div>
+        <div class="report-row"><span>Date / Time</span><span id="repTime">&mdash;</span></div>
+        <div class="report-row"><span>Motorcycle Model</span><span id="repModel">&mdash;</span></div>
+        <div class="report-row"><span>Detected Condition</span><span id="repCond">&mdash;</span></div>
+        <div class="report-row"><span>Confidence</span><span id="repConf">&mdash;</span></div>
+        <div class="report-row"><span>Severity Level</span><span id="repSev">&mdash;</span></div>
+        <div class="report-row"><span>Suggested Repair</span><span id="repRepair">&mdash;</span></div>
+        <div class="report-row"><span>Processing Latency</span><span id="repLatency">&mdash;</span></div>
+        <div style="margin-top:14px;">
+          <div class="lbl">Troubleshooting Steps</div>
+          <ol id="repSteps" style="margin:8px 0 0 18px;padding:0;font-size:13px;color:#D8D2C4;line-height:1.9;"></ol>
+        </div>
+        <div class="btn-row" style="margin-top:16px;margin-bottom:0;">
+          <button class="btn primary" id="pdfBtn" onclick="downloadReportPDF()" disabled>Download PDF Report</button>
+          <button class="btn export" onclick="exportCSV()">Export CSV (Full Log)</button>
+        </div>
+      </div>
+    </section>
+
+    <section id="history-view" class="view">
+      <div class="hcard">
+        <div class="lbl" style="margin-bottom:10px;">Recent Recordings</div>
+        <div class="filter-row">
+          <button class="fb active" onclick="setFilter('all',this)">All</button>
+          <button class="fb fg" onclick="setFilter('normal',this)">Normal</button>
+          <button class="fb fr" onclick="setFilter('knocking',this)">Knocking</button>
+          <button class="fb fo" onclick="setFilter('misfire',this)">Misfire</button>
+          <button class="fb fy" onclick="setFilter('valve_ticking',this)">Valve Tick</button>
+        </div>
+        <table>
+          <thead><tr><th>#</th><th>Time</th><th>Model</th><th>Result</th><th>Confidence</th><th>Report</th></tr></thead>
+          <tbody id="tbody"><tr><td colspan="6" style="text-align:center;color:var(--muted2);padding:20px;">No recordings yet</td></tr></tbody>
+        </table>
+      </div>
+      <div class="btn-row" style="margin-top:14px;">
+        <button class="btn export" onclick="exportCSV()">Export CSV</button>
+      </div>
+    </section>
+
+    <section id="help-view" class="view">
+      <div class="card" style="max-width:640px;">
+        <div class="help-block">
+          <h3>1. Select the motorcycle model</h3>
+          <p>Choose the bike under test in New Diagnosis &mdash; Honda TMX 125 Alpha, Rusi Macho 125, or Suzuki Smash Carb. Each result is tagged with the selected model.</p>
+        </div>
+        <div class="help-block">
+          <h3>2. Position the microphone</h3>
+          <p>Mount the INMP441 at the standardized position near the exhaust (tambutso) using the gooseneck arm before starting a scan.</p>
+        </div>
+        <div class="help-block">
+          <h3>3. Start a diagnosis</h3>
+          <p>Press Start. The system captures ~3 seconds of audio, extracts MFCC features, and classifies the engine condition using the trained Random Forest model.</p>
+        </div>
+        <div class="help-block">
+          <h3>4. Read the result</h3>
+          <p>The detected condition, confidence percentage, and severity level (0&ndash;3) appear under Diagnosis Result. Severity 3 (Knocking) requires immediate attention.</p>
+        </div>
+        <div class="help-block">
+          <h3>5. Save or export</h3>
+          <p>Every classification is automatically logged. Use Save to confirm, View Diagnosis Report for a downloadable PDF, or Export CSV for the full session log.</p>
+        </div>
+        <div class="help-block">
+          <h3>Engine condition classes</h3>
+          <p>Normal, Knocking, Misfire, Valve Ticking &mdash; detected acoustically only. MOTOSIRA does not interface with the ignition or electrical system.</p>
+        </div>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<script>
+const socket = io();
+let paused = true;
+let activeFilter = 'all';
+let allRows = [];
+let lastResult = null;
+let currentModel = '';
+
+document.querySelectorAll('.nav-btn').forEach(btn=>{
+  btn.addEventListener('click',()=>go(btn.dataset.view));
+});
+function go(viewId){
+  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+  document.getElementById(viewId).classList.add('active');
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.toggle('active', b.dataset.view===viewId));
+}
+
+setInterval(()=>{
+  document.getElementById('clock').textContent = new Date().toTimeString().slice(0,8);
+},1000);
+
+const waveEl = document.getElementById('wave');
+for(let i=0;i<44;i++){
+  const b=document.createElement('div');
+  b.className='wb';b.style.height='6px';waveEl.appendChild(b);
+}
+setInterval(()=>{
+  if(paused) return;
+  document.querySelectorAll('.wb').forEach(b=>{
+    b.style.height=(Math.random()*40+5)+'px';
+    b.style.opacity=(Math.random()*0.4+0.4).toFixed(2);
+  });
+},280);
+
+function loadModels(){
+  fetch('/api/models').then(r=>r.json()).then(d=>{
+    const sel = document.getElementById('modelSelect');
+    sel.innerHTML = d.models.map(m=>'<option value="'+m+'" '+(m===d.current?'selected':'')+'>'+m+(m===d.primary?' (primary)':'')+'</option>').join('');
+    currentModel = d.current;
+    const ms = document.getElementById('modelStatus');
+    if(d.model_trained){
+      ms.textContent = 'Model: trained (' + d.trained_classes.join(', ').replace(/_/g,' ') + ')';
+      ms.className = 'pill good';
+    } else {
+      ms.textContent = 'Model: UNTRAINED — results are random';
+      ms.className = 'pill warn';
+    }
+  }).catch(()=>{
+    document.getElementById('modelSelect').innerHTML = '<option value="">Model API unavailable</option>';
+  });
+}
+function setModel(model){
+  fetch('/api/set_model',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model})})
+    .then(r=>r.json()).then(d=>{
+      if(d.current){currentModel=d.current;showToast('Model set: '+currentModel,'ok');}
+    });
+}
+
+const CM={
+  normal:       {cls:'cg', sev:'0', pct:'5%',  bg:'var(--green)', txt:'No issues detected'},
+  knocking:     {cls:'cr', sev:'3', pct:'100%', bg:'var(--red)', txt:'Critical — immediate attention'},
+  misfire:      {cls:'co', sev:'2', pct:'66%',  bg:'var(--rust)', txt:'Moderate — check soon'},
+  valve_ticking:{cls:'cy2',sev:'1', pct:'33%',  bg:'var(--amber)', txt:'Minor — monitor closely'},
+};
+const BM={normal:'bg2',knocking:'br2',misfire:'bo2',valve_ticking:'by2'};
+
+function showToast(msg,type){
+  const t=document.getElementById('toast');
+  t.textContent=msg;t.className='toast '+type+' show';
+  setTimeout(()=>t.className='toast',3000);
+}
+
+function setStep(n){
+  document.querySelectorAll('.step').forEach(s=>{
+    const step = parseInt(s.dataset.step);
+    s.classList.remove('current','done');
+    if(step < n) s.classList.add('done');
+    else if(step === n) s.classList.add('current');
+  });
+}
+
+function startCapture(){
+  paused = false;
+  document.getElementById('startBtn').disabled = true;
+  document.getElementById('stopBtn').disabled = false;
+  document.getElementById('capStatus').textContent = 'RECORDING';
+  document.getElementById('capStatus').className = 'cy2';
+  document.getElementById('analysisStatus').textContent = 'Waiting for audio...';
+  setStep(1);
+  showToast('Capture started','ok');
+}
+function stopCapture(){
+  paused = true;
+  document.getElementById('startBtn').disabled = false;
+  document.getElementById('stopBtn').disabled = true;
+  document.getElementById('capStatus').textContent = 'READY';
+  document.getElementById('capStatus').className = 'cx';
+  showToast('Capture stopped','warn');
+}
+function newScan(){
+  stopCapture();
+  setStep(1);
+  document.getElementById('dResult').innerHTML = 'Detected problem: <span class="cx">&mdash;</span>';
+  document.getElementById('dConf').textContent = '— %';
+  document.getElementById('dSev').textContent = 'Level —';
+  document.getElementById('analysisStatus').textContent = 'Idle';
+  showToast('Ready for new scan','ok');
+}
+function saveResult(){
+  if(!lastResult){showToast('No diagnosis to save yet','warn');return;}
+  showToast('Diagnosis saved to session log','ok');
+}
+function downloadReportPDF(){
+  if(!lastResult || !lastResult.id){showToast('No diagnosis to export yet','warn');return;}
+  window.location.href = '/api/report/'+lastResult.id+'/pdf';
+  showToast('PDF report downloading...','ok');
+}
+
+socket.on('new_result',function(data){
+  if(paused && data.classification==='waiting') return;
+
+  lastResult = data;
+  document.getElementById('pdfBtn').disabled = !data.id;
+  const modelName = data.model || currentModel || '—';
+
+  const c=CM[data.classification]||{cls:'cx',sev:'?',pct:'0%',bg:'var(--muted)',txt:'Unknown'};
+  const pct=Math.round(data.confidence*100);
+  const lbl=data.classification.replace('_',' ').toUpperCase();
+
+  document.getElementById('status').className='big '+c.cls;
+  document.getElementById('status').textContent=lbl;
+  document.getElementById('confidence').textContent=pct+'%';
+  document.getElementById('timestamp').textContent=data.timestamp;
+  document.getElementById('latency').textContent='Latency: '+(data.latency_ms!=null ? data.latency_ms+' ms' : '—');
+  document.getElementById('action').textContent=data.action;
+  document.getElementById('severity').className='sev-num '+c.cls;
+  document.getElementById('severity').textContent=c.sev+' / 3';
+  document.getElementById('sevFill').style.width=c.pct;
+  document.getElementById('sevFill').style.background=c.bg;
+  document.getElementById('sevTxt').textContent=c.txt;
+
+  setStep(2);
+  document.getElementById('analysisStatus').textContent = 'Classifying...';
+  setTimeout(()=>{
+    setStep(3);
+    document.getElementById('capStatus').textContent='COMPLETE';
+    document.getElementById('capStatus').className=c.cls;
+    document.getElementById('analysisStatus').textContent='Done';
+    document.getElementById('dResult').innerHTML = 'Detected problem: <span class="'+c.cls+'">'+lbl+'</span>';
+    document.getElementById('dConf').textContent = pct+'%';
+    document.getElementById('dSev').textContent = 'Level '+c.sev;
+    document.getElementById('dLatency').textContent = data.latency_ms!=null ? data.latency_ms+' ms' : '—';
+    const stepsList = data.steps || [];
+    document.getElementById('dSteps').innerHTML = stepsList.length
+      ? stepsList.map(s=>'<li>'+s+'</li>').join('')
+      : '<li class="cx" style="list-style:none;margin-left:-18px;">No steps for this condition.</li>';
+
+    const qLabel = data.signal_quality || '—';
+    const qGood = qLabel === 'GOOD';
+    const qEl1 = document.getElementById('inputQuality');
+    const qEl2 = document.getElementById('signalQuality');
+    qEl1.textContent = qLabel;
+    qEl1.className = 'pill ' + (qGood ? 'good' : 'warn');
+    qEl2.textContent = qLabel + (data.snr_db!=null ? ' ('+data.snr_db+' dB SNR)' : '');
+    qEl2.className = 'pill ' + (qGood ? 'good' : 'warn');
+
+    document.getElementById('rpmVal').textContent = data.rpm ? data.rpm+' RPM' : '— (sensor not connected)';
+
+    setStep(4);
+  }, 400);
+
+  const dt = new Date().toLocaleString();
+  document.getElementById('pvId').textContent = data.id ? '#'+data.id : '—';
+  document.getElementById('pvTime').textContent = dt;
+  document.getElementById('pvModel').textContent = modelName;
+  document.getElementById('pvCond').textContent = lbl;
+  document.getElementById('pvRepair').textContent = data.action;
+
+  document.getElementById('repId').textContent = data.id ? '#'+data.id : '—';
+  document.getElementById('repTime').textContent = dt;
+  document.getElementById('repModel').textContent = modelName;
+  document.getElementById('repCond').textContent = lbl;
+  document.getElementById('repConf').textContent = pct+'%';
+  document.getElementById('repSev').textContent = 'Level '+c.sev+' / 3';
+  document.getElementById('repRepair').textContent = data.action;
+  document.getElementById('repLatency').textContent = data.latency_ms!=null ? data.latency_ms+' ms' : '—';
+  const repStepsList = data.steps || [];
+  document.getElementById('repSteps').innerHTML = repStepsList.map(s=>'<li>'+s+'</li>').join('');
+
+  if(data.classification==='knocking') showToast('Knocking detected!','crit');
+  else if(data.classification==='misfire') showToast('Misfire detected!','warn');
+  else if(data.classification==='normal') showToast('Engine normal','ok');
+
+  loadHistory();
+  loadStats();
+});
+
+function loadStats(){
+  fetch('/api/stats').then(r=>r.json()).then(d=>{
+    document.getElementById('tot').textContent = d.total || 0;
+    document.getElementById('nor').textContent = (d.by_class && d.by_class.normal) || 0;
+    document.getElementById('mis').textContent = (d.by_class && d.by_class.misfire) || 0;
+    document.getElementById('kno').textContent = (d.by_class && d.by_class.knocking) || 0;
+    document.getElementById('val').textContent = (d.by_class && d.by_class.valve_ticking) || 0;
+  });
+}
+
+function loadHistory(){
+  fetch('/api/history').then(r=>r.json()).then(data=>{
+    allRows=data;
+    renderTable();
+  });
+}
+function renderTable(){
+  const filtered=activeFilter==='all'?allRows:allRows.filter(r=>r.classification===activeFilter);
+  if(!filtered.length){
+    document.getElementById('tbody').innerHTML='<tr><td colspan="6" style="text-align:center;color:var(--muted2);padding:20px;">No recordings</td></tr>';
+    return;
+  }
+  document.getElementById('tbody').innerHTML=filtered.map(r=>
+    '<tr>'+
+    '<td style="color:var(--muted2)">#'+r.id+'</td>'+
+    '<td>'+r.timestamp+'</td>'+
+    '<td style="color:var(--muted)">'+(r.model||'—')+'</td>'+
+    '<td><span class="badge '+(BM[r.classification]||'')+'">'+r.classification.replace('_',' ')+'</span></td>'+
+    '<td style="color:var(--amber)">'+r.confidence+'</td>'+
+    '<td><span class="rlink" onclick="window.location.href=\'/api/report/'+r.id+'/pdf\'">PDF</span></td>'+
+    '</tr>').join('');
+}
+function setFilter(f,el){
+  activeFilter=f;
+  document.querySelectorAll('.fb').forEach(b=>b.classList.remove('active'));
+  el.classList.add('active');
+  renderTable();
+}
+
+function exportCSV(){
+  window.location.href='/api/export';
+  showToast('CSV exported!','ok');
+}
+
+loadModels();
+loadHistory();
+loadStats();
+</script>
+</body>
+</html>

@@ -1,0 +1,8 @@
+# Raspberry Pi capture side only (dashboard stays on the PC)
+librosa==0.10.2
+soundfile==0.12.1
+sounddevice==0.4.7
+scipy==1.13.0
+numpy==1.26.4
+paho-mqtt==1.6.1
+python-dotenv==1.0.1

@@ -1,0 +1,30 @@
+# ── Audio capture / processing ──────────────────────────
+sounddevice==0.4.7
+librosa==0.10.2
+soundfile==0.12.1
+numpy==1.26.4
+scipy==1.13.0
+
+# ── ML ───────────────────────────────────────────────────
+scikit-learn==1.4.2
+joblib==1.4.2
+pandas==2.2.2
+matplotlib==3.9.0
+
+# ── Messaging ────────────────────────────────────────────
+paho-mqtt==1.6.1
+
+# ── Dashboard ────────────────────────────────────────────
+flask==3.0.3
+flask-socketio==5.3.6
+flask-limiter==3.7.0
+eventlet==0.36.1
+python-dotenv==1.0.1
+werkzeug==3.0.3
+
+# ── Reporting ────────────────────────────────────────────
+reportlab==4.2.0
+
+# ── Raspberry Pi only (install on-device, not on dev PC) ──
+# RPi.GPIO==0.7.1
+# adafruit-circuitpython-rgb-display==3.13.0

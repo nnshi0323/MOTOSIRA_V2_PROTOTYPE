@@ -1,0 +1,10 @@
+__pycache__/
+*.pyc
+.env
+dashboard/motosira.db
+model/trained/*.pkl
+logs/
+*.wav
+.DS_Store
+venv/
+.venv/

@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MOTOSIRA — Login</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#14120F;--surface:#1F1B15;--border:#332C1F;--border-lt:#4A4030;--amber:#FFB020;--green:#4CE66B;--red:#FF3B30;--muted:#8C8372;--muted2:#5A5346;}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'Inter',Arial,sans-serif;background:var(--bg);background-image:radial-gradient(circle at 20% 10%, #1a1712 0%, var(--bg) 55%);color:#fff;display:flex;align-items:center;justify-content:center;min-height:100vh;}
+.box{background:var(--surface);border:1px solid var(--border);border-radius:4px;padding:40px 36px;width:100%;max-width:380px;position:relative;}
+.box::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:repeating-linear-gradient(90deg,var(--border-lt) 0 8px,transparent 8px 16px);}
+.logo{font-family:'Oswald',sans-serif;font-size:30px;font-weight:700;color:var(--amber);letter-spacing:5px;text-align:center;margin-bottom:8px;text-transform:uppercase;}
+.sub{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--muted2);text-align:center;letter-spacing:1px;margin-bottom:34px;text-transform:uppercase;}
+.lbl{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--muted2);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:6px;display:block;}
+input{width:100%;background:#0F0D0B;border:1px solid var(--border-lt);border-radius:2px;padding:12px 14px;color:#fff;font-family:'JetBrains Mono',monospace;font-size:13px;margin-bottom:16px;outline:none;transition:border .2s;}
+input:focus{border-color:var(--amber);}
+.btn{width:100%;background:#2A1E05;border:1px solid var(--amber);border-radius:2px;padding:13px;color:var(--amber);font-family:'Oswald',sans-serif;font-size:13px;font-weight:700;letter-spacing:2px;cursor:pointer;text-transform:uppercase;transition:all .15s;}
+.btn:hover{background:#332405;}
+.error{background:#220806;border:1px solid var(--red);border-radius:2px;padding:10px 14px;color:var(--red);font-family:'JetBrains Mono',monospace;font-size:12px;margin-bottom:16px;text-align:center;}
+.dot-row{display:flex;align-items:center;justify-content:center;gap:6px;margin-top:24px;}
+.dot{width:6px;height:6px;border-radius:50%;background:var(--green);box-shadow:0 0 6px var(--green);animation:pulse 1.2s infinite;}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.15}}
+.dot-txt{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--muted2);letter-spacing:1px;text-transform:uppercase;}
+</style>
+</head>
+<body>
+<div class="box">
+  <div class="logo">Motosira</div>
+  <div class="sub">Acoustic Engine Diagnostic Instrument</div>
+  {% if error %}
+  <div class="error">{{ error }}</div>
+  {% endif %}
+  <form method="POST" action="/login">
+    <label class="lbl">Username</label>
+    <input type="text" name="username" placeholder="Enter username" autocomplete="off" required>
+    <label class="lbl">Password</label>
+    <input type="password" name="password" placeholder="Enter password" required>
+    <button class="btn" type="submit">Login</button>
+  </form>
+  <div class="dot-row">
+    <div class="dot"></div>
+    <div class="dot-txt">Secure Access Only</div>
+  </div>
+</div>
+</body>
+</html>
